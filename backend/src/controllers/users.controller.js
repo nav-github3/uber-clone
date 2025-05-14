@@ -5,6 +5,8 @@ import { uploadOnCloudinary } from '../utils/cloudinary.js';
  
 
 
+
+//1. Register the user 
 const registerUser = asyncHandler(async (req, res) => {
 
 	//1. get the data from the request 
@@ -48,7 +50,6 @@ const registerUser = asyncHandler(async (req, res) => {
 
 
 	//7. send the response 
-	//7. send the response 
 	const createdUser = await User.findById(user._id).select("-password -refreshToken")
 
 	if(!createdUser){
@@ -58,6 +59,21 @@ const registerUser = asyncHandler(async (req, res) => {
 	return res.status(201).json( new ApiResponse(201 , createdUser , "User registered successfully"));
 
 
-
-
 }); 
+
+const loginUser = asyncHandler(async (req, res) => {
+
+	//1. get the data from the request
+	const { email, phoneNumber ,password } = req.body;
+
+	//2. validate the data
+	if(!(email , phoneNumber)) {
+		throw new ApiError(400, "All filelds are required for register the user ")
+	}
+
+
+})
+
+
+
+export { registerUser };
