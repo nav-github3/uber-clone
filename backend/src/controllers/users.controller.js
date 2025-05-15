@@ -67,13 +67,68 @@ const loginUser = asyncHandler(async (req, res) => {
 	const { email, phoneNumber ,password } = req.body;
 
 	//2. validate the data
-	if(!(email , phoneNumber)) {
-		throw new ApiError(400, "All filelds are required for register the user ")
+	if(!(email || phoneNumber)) {
+		throw new ApiError(400, " Email or phone number is required "); 
 	}
 
+	//3. check weather the user exists or not 
+	const user = await User.finddOne({$or : [{email : email.toLowerCase()}, {phoneNumber}]});
+	if(!user){
+		throw new ApiError(400, "User does not exists");
+	}
 
-})
+	//4. check the password 
+	const isPasswordMatch = await user.isPasswordMatch(password); 
+	if(!isPasswordMatch){
+		throw new ApiError(400, "Password is incorrect");
+	}
+
+	//5. generate the access token and refresh token
+	const { accessToken , refreshToken} = await user.generateAccessTokenAndRefreshToken();
+	const loggedInUser = await User.findById(user._id).select("-password -refreshToken");
 
 
+	
+	// 7. send the response through cookies 	
 
-export { registerUser };
+	const options = {
+ 	 httpOnly : true,
+  	secure : true,
+	}
+
+	///8. Send the response 
+	return res.status(200)
+	.cookie("accessToken", accessToken, options)
+	.cookie("refreshToken", refreshToken, options)
+	.json(new ApiResponse(200, loggedInUser, "User logged in successfully"));
+
+
+}); 
+
+const generateAccessTokenAndRefreshToken = async( req, res ) =>{
+	
+	try {
+		const user = await User.findById(userId);
+		if(!user){
+			throw new ApiError(400, "User does not exists");
+		}
+	
+		const accessToken = user.generateAccessToken(); 
+		const refreshToken = user.generateRefreshToken();
+	
+		user.refreshToken = refreshToken;
+	   	await user.save(); 
+	   	return { accessToken , refreshToken };
+		
+	} catch (error) {
+	    console.log("Error in generating access and refresh token ", error);
+    	throw new ApiError(500 , "Internal Server Error");
+	}
+	
+	
+}
+ 
+
+export { registerUser, 
+			loginUser
+ };
